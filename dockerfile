@@ -1,11 +1,15 @@
+# =========================================================
 # Bitmain IP Reporter (Wine + Web VNC)
+# =========================================================
 FROM jlesage/baseimage-gui:debian-12-v4.9.0
 
 LABEL maintainer="bitmain" \
-      version="1.1" \
+      version="1.2" \
       description="Run Bitmain IP Reporter via Wine in a web-based GUI container."
 
-# === Environment and Locales ===
+# =========================================================
+# === Environment =========================================
+# =========================================================
 ENV APP_NAME="ip-reporter" \
     APP_VERSION="Latest" \
     WINEARCH=win64 \
@@ -19,20 +23,30 @@ ENV APP_NAME="ip-reporter" \
     DISPLAY_HEIGHT=800 \
     APP_ICON="https://bitcoin.org/img/icons/opengraph.png"
 
-# === Enable contrib & WineHQ repo ===
+# =========================================================
+# === Enable contrib & WineHQ repo (resilient + bootstrap) =
+# =========================================================
 RUN set -eux; \
-    sed -i 's/^deb \(.*\) main$/deb \1 main contrib non-free non-free-firmware/' /etc/apt/sources.list; \
+    # Some jlesage base images lack a main sources.list entirely
+    if [ ! -f /etc/apt/sources.list ] && [ ! -f /etc/apt/sources.list.d/debian.sources ]; then \
+        echo "deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list; \
+        echo "deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list; \
+        echo "deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list; \
+    fi; \
     dpkg --add-architecture i386; \
     apt-get update; \
-    apt-get install -y --no-install-recommends gnupg2 software-properties-common; \
+    # Install wget early for fetching keys
+    apt-get install -y --no-install-recommends wget ca-certificates gnupg2 software-properties-common; \
     mkdir -pm755 /etc/apt/keyrings; \
     wget -qO /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key; \
     wget -qO /etc/apt/sources.list.d/winehq-bookworm.sources https://dl.winehq.org/wine-builds/debian/dists/bookworm/winehq-bookworm.sources; \
     apt-get update
 
-# === Install all packages ===
+# =========================================================
+# === Install packages ====================================
+# =========================================================
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        winehq-stable wine64 wine32 winetricks unzip cabextract wget curl jq tar gnupg \
+        winehq-stable wine64 wine32 winetricks unzip cabextract curl jq tar gnupg \
         ca-certificates git xz-utils build-essential autoconf apt-utils sudo vim nano bash mc \
         libfontconfig1 libxcb1 libxrender1 libxcb-icccm4 libxkbcommon-x11-0 \
         libxext6 libxfixes3 libxi6 libssl-dev libboost-dev \
@@ -42,25 +56,36 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         xdg-utils locales unattended-upgrades && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# === Locale setup ===
+# =========================================================
+# === Locale setup ========================================
+# =========================================================
 RUN sed-patch 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && locale-gen
 
-# === Pre-initialize Wine prefix to prevent first-launch delay ===
+# =========================================================
+# === Prepare Wine environment ============================
+# =========================================================
 RUN mkdir -p /config /opt/app /zip && \
     wineboot --init || true
 
 VOLUME ["/config", "/zip"]
 
-# === Copy entrypoint ===
+# =========================================================
+# === Copy entrypoint =====================================
+# =========================================================
 COPY entrypoint.sh /startapp.sh
 RUN chmod +x /startapp.sh
 
-# === GUI meta ===
+# =========================================================
+# === GUI Metadata ========================================
+# =========================================================
 RUN set-cont-env APP_NAME "Bitmain IP Reporter" && \
     set-cont-env APP_ICON "${APP_ICON}" && \
     set-cont-env APP_VERSION "${APP_VERSION}" && \
     set-cont-env DISPLAY_WIDTH "${DISPLAY_WIDTH}" && \
     set-cont-env DISPLAY_HEIGHT "${DISPLAY_HEIGHT}"
 
+# =========================================================
+# === Ports & Entrypoint ==================================
+# =========================================================
 EXPOSE 5800 5900
 ENTRYPOINT ["/startapp.sh"]
