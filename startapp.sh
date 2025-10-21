@@ -11,12 +11,12 @@ export WINEDLLOVERRIDES="${WINEDLLOVERRIDES:-mscoree,mshtml=}"
 export WINEDEBUG="${WINEDEBUG:--all}"
 export XDG_RUNTIME_DIR=/tmp
 
-echo "[INFO] Bitmain IP Reporter GUI container started..."
+echo "[INFO] Bitmain IP Reporter GUI container starting..."
 echo "[INFO] Checking for ZIP file in ${ZIPDIR}..."
 
-# Optional download
+# Optional ZIP download
 if [[ -n "${ZIP_URL:-}" && "${ZIP_URL:-}" != "" ]]; then
-    echo "[INFO] Downloading from ${ZIP_URL}"
+    echo "[INFO] Downloading ZIP from ${ZIP_URL}"
     wget -O "${ZIP_FILE}" "${ZIP_URL}" || {
         echo "[ERROR] Failed to fetch ZIP from ${ZIP_URL}"
         exec sleep infinity
