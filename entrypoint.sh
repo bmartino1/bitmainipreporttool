@@ -3,12 +3,19 @@ set -euo pipefail
 
 APPDIR="/opt/app"
 ZIPDIR="/zip"
+LOGFILE="/config/wine.log"
+
+export XDG_RUNTIME_DIR=/tmp
+export WINEARCH="${WINEARCH:-win64}"
+export WINEPREFIX="${WINEPREFIX:-/config/wineprefix}"
+export WINEDLLOVERRIDES="${WINEDLLOVERRIDES:-mscoree,mshtml=}"
+export WINEDEBUG="${WINEDEBUG:--all}"
 
 echo "[INFO] Starting Bitmain IP Reporter container..."
 echo "[INFO] Checking for ZIP file in ${ZIPDIR}..."
 
-# Support user-supplied download URL or pre-mounted file
-if [[ -n "${ZIP_URL}" && "${ZIP_URL}" != "" ]]; then
+# Optional download
+if [[ -n "${ZIP_URL:-}" && "${ZIP_URL:-}" != "" ]]; then
     echo "[INFO] Downloading from ${ZIP_URL}"
     wget -O "${ZIP_FILE}" "${ZIP_URL}" || {
         echo "[ERROR] Failed to fetch ZIP from ${ZIP_URL}"
@@ -16,12 +23,11 @@ if [[ -n "${ZIP_URL}" && "${ZIP_URL}" != "" ]]; then
     }
 fi
 
-# Detect ZIP file (user may replace it anytime)
+# Detect local zip
 ZIP_FILE=$(find "${ZIPDIR}" -maxdepth 1 -type f -iname "*.zip" | head -n 1 || true)
-
 if [[ -z "${ZIP_FILE}" ]]; then
     echo "[ERROR] No ZIP found in ${ZIPDIR}. Please mount one to /zip"
-    sleep infinity
+    exec sleep infinity
 fi
 
 echo "[INFO] Extracting ${ZIP_FILE} ..."
@@ -31,8 +37,11 @@ unzip -o "${ZIP_FILE}" -d "${APPDIR}"
 EXE_FILE=$(find "${APPDIR}" -type f -iname "*.exe" | head -n 1 || true)
 if [[ -z "${EXE_FILE}" ]]; then
     echo "[ERROR] No .exe found after extraction!"
-    sleep infinity
+    exec sleep infinity
 fi
 
 echo "[INFO] Launching ${EXE_FILE} via Wine..."
-exec wine "${EXE_FILE}"
+nohup wine "${EXE_FILE}" >"${LOGFILE}" 2>&1 &
+sleep 2
+echo "[INFO] Wine process started. Following log..."
+tail -f "${LOGFILE}"
