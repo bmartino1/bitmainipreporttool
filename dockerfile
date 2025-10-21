@@ -11,9 +11,9 @@ ENV APP_NAME="Bitmain IP Reporter" \
     LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8 \
-    ZIP_FILE="/zip/ip-reporter.zip"
+    XDG_RUNTIME_DIR=/tmp
 
-# === Base setup & fix sources ===================================
+# --- Base setup and sources fix ---
 RUN set -eux; \
     apt-get update; \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -29,7 +29,7 @@ RUN set -eux; \
     fi; \
     apt-get update
 
-# === Enable multi-arch and add WineHQ repo ======================
+# --- Enable multiarch + WineHQ repo ---
 RUN set -eux; \
     dpkg --add-architecture i386; \
     mkdir -pm755 /etc/apt/keyrings; \
@@ -37,7 +37,7 @@ RUN set -eux; \
     wget -qO /etc/apt/sources.list.d/winehq-bookworm.sources https://dl.winehq.org/wine-builds/debian/dists/bookworm/winehq-bookworm.sources; \
     apt-get update
 
-# === Install Wine + dependencies ===============================
+# --- Install Wine and GUI deps ---
 RUN set -eux; \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --install-recommends \
         winehq-stable unzip cabextract xdg-utils locales \
@@ -45,19 +45,18 @@ RUN set -eux; \
         libxext6 libxfixes3 libxi6 xvfb x11vnc openbox supervisor procps tini; \
     apt-get clean; rm -rf /var/lib/apt/lists/*
 
-# === Install Winetricks manually ===============================
+# --- Install Winetricks manually ---
 RUN set -eux; \
     wget -O /tmp/winetricks.deb http://ftp.de.debian.org/debian/pool/contrib/w/winetricks/winetricks_20230212-2_all.deb; \
-    apt-get update; \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends /tmp/winetricks.deb; \
     rm -f /tmp/winetricks.deb; \
     apt-get clean; rm -rf /var/lib/apt/lists/*
 
-# === Locale + prefix init ======================================
+# --- Locale + Wine prefix init ---
 RUN set -eux; sed -i 's/# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen; locale-gen
 RUN set -eux; mkdir -p /config /opt/app /zip; wineboot --init || true
 
-# === GUI metadata ==============================================
+# --- jlesage GUI metadata ---
 RUN set-cont-env APP_NAME "${APP_NAME}" && \
     set-cont-env DISPLAY_WIDTH "${DISPLAY_WIDTH}" && \
     set-cont-env DISPLAY_HEIGHT "${DISPLAY_HEIGHT}"
@@ -65,6 +64,9 @@ RUN set-cont-env APP_NAME "${APP_NAME}" && \
 VOLUME ["/config", "/zip"]
 EXPOSE 5800 5900
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+# --- Add custom startup script ---
+COPY startapp.sh /startapp.sh
+RUN chmod +x /startapp.sh
+
+# --- Keep jlesage base entrypoint ---
+ENTRYPOINT ["/init"]
