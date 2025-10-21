@@ -45,7 +45,7 @@ if [[ -z "${ZIP_FILE}" ]]; then
 fi
 
 echo "[INFO] Extracting ${ZIP_FILE} ..."
-rm -rf "${APPDIR:?}/"*
+rm -f "${APPDIR:?}/"* || true
 unzip -o "${ZIP_FILE}" -d "${APPDIR}"
 
 # ---------------------------------------------------------
@@ -86,7 +86,7 @@ fi
 
 echo "[INFO] [cont-init.d] Launching Wine app: ${EXE_FILE}"
 wine "${EXE_FILE}" >"${LOGFILE}" 2>&1 &
-sleep 2
+sleep 3
 echo "[INFO] [cont-init.d] Wine background process started."
 EOF
 
@@ -101,4 +101,14 @@ echo "[INFO] Logs will be written to ${LOGFILE}"
 echo "[INFO] ============================================================="
 echo "[INFO] Handing control to /init (VNC, Openbox, supervisor, etc.)"
 echo "[INFO] ============================================================="
-exec /init
+
+# Start init in background so the script can tail logs afterward
+/init &
+
+# Wait for GUI readiness
+sleep 10
+
+# Keep container alive while streaming logs for visibility
+echo "[INFO] Container now running Bitmain IP Reporter via Wine."
+echo "[INFO] Press Ctrl+C to stop container."
+tail -f "${LOGFILE}" /tmp/xvfb.log /tmp/nginx-access.log /tmp/nginx-error.log 2>/dev/null || sleep infinity
