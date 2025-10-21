@@ -7,11 +7,17 @@ LOGFILE="/config/wine.log"
 INIT_HOOK_DIR="/etc/cont-init.d"
 INIT_SCRIPT="${INIT_HOOK_DIR}/55-start-wine.sh"
 
+# --- Ensure sane defaults for jlesage init ---
+export USER_ID="${USER_ID:-99}"
+export GROUP_ID="${GROUP_ID:-100}"
+export XDG_RUNTIME_DIR="/tmp/xdg-runtime-dir"
+mkdir -p "${XDG_RUNTIME_DIR}"
+chmod 700 "${XDG_RUNTIME_DIR}"
+
 export WINEARCH="${WINEARCH:-win64}"
 export WINEPREFIX="${WINEPREFIX:-/config/wineprefix}"
 export WINEDLLOVERRIDES="${WINEDLLOVERRIDES:-mscoree,mshtml=}"
 export WINEDEBUG="${WINEDEBUG:--all}"
-export XDG_RUNTIME_DIR=/tmp
 
 echo "[INFO] ============================================================="
 echo "[INFO] Bitmain IP Reporter GUI container starting..."
@@ -71,7 +77,7 @@ export WINEARCH="${WINEARCH:-win64}"
 export WINEPREFIX="${WINEPREFIX:-/config/wineprefix}"
 export WINEDLLOVERRIDES="${WINEDLLOVERRIDES:-mscoree,mshtml=}"
 export WINEDEBUG="${WINEDEBUG:--all}"
-export XDG_RUNTIME_DIR=/tmp
+export XDG_RUNTIME_DIR="/tmp/xdg-runtime-dir"
 
 if [[ -z "${EXE_FILE}" ]]; then
     echo "[ERROR] [cont-init.d] No EXE found at container init time!"
