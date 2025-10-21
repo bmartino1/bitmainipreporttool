@@ -11,13 +11,14 @@ ENV APP_NAME="Bitmain IP Reporter" \
     LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8 \
+    ZIP_FILE="/zip/ip-reporter.zip" \
     XDG_RUNTIME_DIR=/tmp
 
 # === Base setup & fix sources ===================================
 RUN set -eux; \
     apt-get update; \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        wget curl ca-certificates gnupg2 software-properties-common xz-utils iputils-ping dnsutils binutils; \
+        wget curl ca-certificates gnupg2 software-properties-common xz-utils iputils-ping dnsutils binutils apt-utils; \
     if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
         sed -i 's/components: *main$/components: main contrib non-free non-free-firmware/' /etc/apt/sources.list.d/debian.sources; \
     elif [ -f /etc/apt/sources.list ]; then \
@@ -93,9 +94,9 @@ RUN set-cont-env APP_NAME "${APP_NAME}" && \
 VOLUME ["/config", "/zip"]
 EXPOSE 5800 5900
 
-# === Add startup script (jlesage standard) =====================
-COPY startapp.sh /startapp.sh
-RUN chmod +x /startapp.sh
+# === Application startup script (required path) ================
+COPY startapp /startapp
+RUN chmod +x /startapp
 
-# === Keep jlesage /init as entrypoint (restores web VNC) =======
+# === Keep jlesage’s init (DO NOT OVERRIDE ENTRYPOINT) ==========
 ENTRYPOINT ["/init"]
