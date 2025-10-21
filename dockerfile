@@ -11,7 +11,6 @@ ENV APP_NAME="Bitmain IP Reporter" \
     LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8 \
-    ZIP_FILE="/zip/ip-reporter.zip" \
     XDG_RUNTIME_DIR=/tmp
 
 # === Base setup & fix sources ===================================
@@ -91,7 +90,7 @@ RUN set-cont-env APP_NAME "${APP_NAME}" && \
     set-cont-env DISPLAY_WIDTH "${DISPLAY_WIDTH}" && \
     set-cont-env DISPLAY_HEIGHT "${DISPLAY_HEIGHT}"
 
-VOLUME ["/config", "/zip"]
+VOLUME ["/zip"]
 EXPOSE 5800 5900
 
 # === Application startup script ================================
