@@ -45,8 +45,14 @@ if [[ -z "${ZIP_FILE}" ]]; then
 fi
 
 echo "[INFO] Extracting ${ZIP_FILE} ..."
+chmod 777 -R "${APPDIR}"
+chown nobody:users -R "${APPDIR}"
 rm -f "${APPDIR:?}/"* || true
 unzip -o "${ZIP_FILE}" -d "${APPDIR}"
+
+#Fix Permission
+chmod 777 -R "${APPDIR}"
+chown nobody:users -R "${APPDIR}"
 
 # ---------------------------------------------------------
 # Locate EXE file
