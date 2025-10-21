@@ -30,7 +30,7 @@ RUN set -eux; \
     fi; \
     apt-get update
 
-# Install Depends libraries for base iamge and script
+# Install Depends libraries for base image and script
 RUN apt-get -yq update && apt-get -yq install \
     libfontconfig1 \
     libxcb1 \
@@ -94,9 +94,9 @@ RUN set-cont-env APP_NAME "${APP_NAME}" && \
 VOLUME ["/config", "/zip"]
 EXPOSE 5800 5900
 
-# === Application startup script (required path) ================
-COPY startapp /startapp
-RUN chmod +x /startapp
+# === Application startup script ================================
+COPY startapp.sh /startapp.sh
+RUN chmod +x /startapp.sh
 
-# === Keep jlesage’s init (DO NOT OVERRIDE ENTRYPOINT) ==========
-ENTRYPOINT ["/init"]
+# === ENTRYPOINT: directly run our script (which calls /init) ===
+ENTRYPOINT ["/startapp.sh"]
