@@ -1,0 +1,19 @@
+#version: "3.9"
+services:
+  ip-reporter:
+    image: bitmain/ip-reporter:latest
+    container_name: ip-reporter
+    restart: unless-stopped
+    ports:
+      - "5800:5800"   # Web VNC
+      - "5900:5900"   # Optional native VNC
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - ZIP_FILE="IP Reporter.zip"
+      - ZIP_URL=https://ip-reporter.co/releases/IPReporter-win.zip
+      - DISPLAY_WIDTH=1280
+      - DISPLAY_HEIGHT=800
+    volumes:
+      - ./config:/config
+      - ./zip:/zip
