@@ -1,19 +1,18 @@
 #version: "3.9"
+
 services:
-  ip-reporter:
-    image: bitmain/ip-reporter:latest
-    container_name: ip-reporter
+  bitman-ip-report-tool:
+    image: bmmbmm01/bitmainipreporttool:latest
+    container_name: Bitman-IP-Report-Tool
     restart: unless-stopped
     ports:
-      - "5800:5800"   # Web VNC
-      - "5900:5900"   # Optional native VNC
+      - "5800:5800"
     cap_add:
       - NET_ADMIN
     environment:
-      - ZIP_FILE="IP Reporter.zip"
-      - ZIP_URL=https://ip-reporter.co/releases/IPReporter-win.zip
-      - DISPLAY_WIDTH=1280
-      - DISPLAY_HEIGHT=800
+      TZ: "America/Chicago"
+      USER_ID: "0"
+      GROUP_ID: "0"
     volumes:
-      - ./config:/config
-      - ./zip:/zip
+      - /mnt/user/appdata/ipreport/zip/:/zip:rw
+#    pids_limit: 2048
