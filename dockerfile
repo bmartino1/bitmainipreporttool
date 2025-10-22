@@ -1,6 +1,4 @@
-# Bitmain IP Reporter minimal Wine GUI image
 FROM jlesage/baseimage-gui:debian-12-v4.9.0
-
 
 # ---- Locale ----
 #English Locales
@@ -97,51 +95,7 @@ RUN set -eux; \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends binutils /tmp/winetricks.deb; \
     rm -f /tmp/winetricks.deb
 
-# ============================== ADDED: Wine First Run Configure ==============================
-# Create a Wine prefix non-interactively during build so the first container start is clean.
-# No volume is declared for the prefix here; this only primes the image.
-
-# Prefer 64-bit prefix; can be overridden at build time: --build-arg WINEARCH=win32
-ARG WINEARCH=win64
-ENV WINEARCH=${WINEARCH}
-
-# Prefix + runtime env; suppress Mono/Gecko prompts; quiet noisy debug
-ENV WINEPREFIX=/wineprefix \
-    XDG_RUNTIME_DIR=/tmp/xdg \
-    WINEDLLOVERRIDES=mscoree,mshtml= \
-    WINEDEBUG=-all
-
-# Prepare dirs with permissive perms to avoid UID/GID issues later
-RUN set -eux; \
-    mkdir -p "${WINEPREFIX}" "${XDG_RUNTIME_DIR}"; \
-    chmod -R 777 "${WINEPREFIX}" "${XDG_RUNTIME_DIR}"
-
-# Headless first-run init (with Xvfb). Left here to preserve prior steps; harmless if X dies.
-RUN set -eux; \
-    export WINEPREFIX="${WINEPREFIX}"; \
-    export WINEARCH="${WINEARCH}"; \
-    xvfb-run -a -s "-screen 0 1024x768x24" wineboot --init || true; \
-    wineserver -w || true; \
-    winetricks -q -f corefonts settings fontsmooth=rgb || true; \
-    wineserver -w || true; \
-    if [ ! -f "${WINEPREFIX}/system.reg" ] || [ ! -f "${WINEPREFIX}/user.reg" ] || [ ! -d "${WINEPREFIX}/drive_c" ]; then \
-        xvfb-run -a -s "-screen 0 1024x768x24" wineboot --init || true; \
-        wineserver -w || true; \
-    fi
-
-# ---- EXTRA: Pure headless first-run (NO X server at all) ----
-# Unset DISPLAY so Wine never tries to talk to X; still creates a valid prefix.
-ENV WINEDLLOVERRIDES=${WINEDLLOVERRIDES};winemenubuilder.exe=d
-RUN set -eux; \
-    export WINEPREFIX="${WINEPREFIX}"; \
-    export WINEARCH="${WINEARCH}"; \
-    (unset DISPLAY || true); \
-    wineboot --init || true; \
-    wineserver -w || true; \
-    winetricks -q -f corefonts settings fontsmooth=rgb || true; \
-    wineserver -w || true; \
-    test -f "${WINEPREFIX}/system.reg" && test -f "${WINEPREFIX}/user.reg" && test -d "${WINEPREFIX}/drive_c"
-# =============================================================================================
+RUN chmod 777 -R /root && chown nobody:users -R /root
 
 # ---- Clean only once ----
 #RUN apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -149,6 +103,20 @@ RUN set -eux; \
 # ---- Expose GUI + make folders persistent ----
 VOLUME ["/zip", "/exe"]
 EXPOSE 5800 5900
+
+# Give 'app' passwordless sudo (baseimage already provides 'app' user)
+RUN apt-get update && apt-get install -y --no-install-recommends sudo && \
+    echo "app ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-app && \
+    chmod 0440 /etc/sudoers.d/90-app
+
+# App metadata (optional)
+RUN set-cont-env APP_NAME "Bitmain IP Reporter" \
+ && set-cont-env DISPLAY_WIDTH "1280" \
+ && set-cont-env DISPLAY_HEIGHT "800"
+
+# Install the startup script expected by jlesage baseimage
+COPY startapp.sh /startapp.sh
+RUN chmod +x /startapp.sh
 
 # ---- Add entrypoint ----
 COPY entrypoint.sh /entrypoint.sh
